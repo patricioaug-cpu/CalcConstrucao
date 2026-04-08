@@ -185,29 +185,30 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log("onAuthStateChanged disparado:", firebaseUser ? "Logado" : "Deslogado");
       
-      if (firebaseUser) {
-        try {
-          const docRef = doc(db, 'users', firebaseUser.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            setUser(docSnap.data() as UserProfile);
-          } else {
-            console.log("Perfil não encontrado, criando novo...");
-            const newProfile = await createProfile(firebaseUser, firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário');
-            setUser(newProfile);
+      try {
+        if (firebaseUser) {
+          try {
+            const docRef = doc(db, 'users', firebaseUser.uid);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+              setUser(docSnap.data() as UserProfile);
+            } else {
+              console.log("Perfil não encontrado, criando novo...");
+              const newProfile = await createProfile(firebaseUser, firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário');
+              setUser(newProfile);
+            }
+          } catch (error) {
+            console.error("Erro ao carregar perfil no onAuthStateChanged:", error);
           }
-        } catch (error) {
-          console.error("Erro ao carregar perfil no onAuthStateChanged:", error);
-          // Don't clear user immediately if it's just a temporary network error
-          // but if we can't get the profile, we might need to fallback
+        } else {
+          setUser(null);
         }
-      } else {
-        setUser(null);
+      } finally {
+        setLoading(false);
+        clearTimeout(timeoutId);
+        console.log("Estado de carregamento finalizado.");
       }
-      
-      setLoading(false);
-      clearTimeout(timeoutId);
     });
 
     return () => {

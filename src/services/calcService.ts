@@ -31,7 +31,9 @@ export function calculateMaterials(inputs: CalcInputs): CalcResults {
     }
 
     const volumeWithWaste = area * (thickness / 100) * wasteFactor;
-    const sandM3 = volumeWithWaste;
+    // For mortars, the volume of sand is approximately the volume of the mortar.
+    // We add a small yield factor (1.05) to account for compaction and voids.
+    const sandM3 = volumeWithWaste * 1.05;
     const volumeCement = sandM3 / ratio;
     const weightCement = volumeCement * CEMENT_DENSITY;
     const cementBags = Math.ceil(weightCement / CEMENT_BAG_WEIGHT);

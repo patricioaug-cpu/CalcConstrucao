@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 // @ts-ignore
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -92,7 +92,7 @@ async function testConnection() {
   try {
     console.log("Testando conexão com o Firebase...");
     // Attempt to fetch a non-existent doc to test connection
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    await getDoc(doc(db, 'test', 'connection'));
     console.log("Conexão com Firestore estabelecida com sucesso.");
   } catch (error: any) {
     console.error("Falha na conexão com o Firebase:", error);

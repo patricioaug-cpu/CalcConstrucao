@@ -40,6 +40,18 @@ export const Calculator: React.FC = () => {
     cementPrice: 0,
     sandPrice: 0
   });
+
+  // Local state to handle string inputs (allowing dots/commas while typing)
+  const [displayInputs, setDisplayInputs] = useState({
+    width: '',
+    heightOrLength: '',
+    thickness: '',
+    waste: '10',
+    cementPrice: '',
+    sandPrice: '',
+    customRatio: ''
+  });
+
   const [results, setResults] = useState<CalcResults | null>(null);
   const [copied, setCopied] = useState(false);
   const [isTrialActive, setIsTrialActive] = useState(true);
@@ -61,11 +73,34 @@ export const Calculator: React.FC = () => {
         ...p.inputs,
         useCustomRatio: p.inputs.useCustomRatio ?? !!p.inputs.customRatio
       });
+      setDisplayInputs({
+        width: p.inputs.width.toString(),
+        heightOrLength: p.inputs.heightOrLength.toString(),
+        thickness: p.inputs.thickness.toString(),
+        waste: p.inputs.waste.toString(),
+        cementPrice: p.inputs.cementPrice?.toString() || '',
+        sandPrice: p.inputs.sandPrice?.toString() || '',
+        customRatio: p.inputs.customRatio?.toString() || ''
+      });
       setResults(p.results);
       setProjectName(p.name);
       setCurrentProjectId(p.id || null);
     }
   }, [user, location.state]);
+
+  const parseInput = (val: string): number => {
+    const sanitized = val.replace(',', '.');
+    return parseFloat(sanitized) || 0;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    // Update display string
+    setDisplayInputs(prev => ({ ...prev, [field]: value }));
+    
+    // Update numeric value for calculation
+    const numValue = parseInput(value);
+    setInputs(prev => ({ ...prev, [field]: numValue }));
+  };
 
   const handleCalculate = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -249,10 +284,15 @@ export const Calculator: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-slate-600">1 :</span>
                     <input 
-                      type="number" 
-                      step="0.1"
-                      value={inputs.customRatio === undefined ? '' : inputs.customRatio}
-                      onChange={(e) => setInputs({ ...inputs, customRatio: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                      type="text" 
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
+                      value={displayInputs.customRatio}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDisplayInputs(prev => ({ ...prev, customRatio: val }));
+                        setInputs(prev => ({ ...prev, customRatio: val === '' ? undefined : parseInput(val) }));
+                      }}
                       className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
                       placeholder="Ex: 3"
                     />
@@ -268,39 +308,45 @@ export const Calculator: React.FC = () => {
                   {inputs.service === 'contrapiso' ? 'Largura (m)' : 'Largura (m)'}
                 </label>
                 <input 
-                  type="number" 
-                  step="0.01"
-                  value={inputs.width || ''}
-                  onChange={(e) => setInputs({ ...inputs, width: parseFloat(e.target.value) || 0 })}
+                  type="text" 
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  value={displayInputs.width}
+                  onChange={(e) => handleInputChange('width', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   placeholder="0.00"
                 />
+                <p className="text-[9px] text-slate-400 mt-0.5">Use ponto ou vírgula</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   {inputs.service === 'contrapiso' ? 'Comprimento (m)' : 'Altura (m)'}
                 </label>
                 <input 
-                  type="number" 
-                  step="0.01"
-                  value={inputs.heightOrLength || ''}
-                  onChange={(e) => setInputs({ ...inputs, heightOrLength: parseFloat(e.target.value) || 0 })}
+                  type="text" 
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  value={displayInputs.heightOrLength}
+                  onChange={(e) => handleInputChange('heightOrLength', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                   placeholder="0.00"
                 />
+                <p className="text-[9px] text-slate-400 mt-0.5">Use ponto ou vírgula</p>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Espessura (cm)</label>
               <input 
-                type="number" 
-                step="0.1"
-                value={inputs.thickness || ''}
-                onChange={(e) => setInputs({ ...inputs, thickness: parseFloat(e.target.value) || 0 })}
+                type="text" 
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={displayInputs.thickness}
+                onChange={(e) => handleInputChange('thickness', e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                 placeholder="Ex: 2.5"
               />
+              <p className="text-[9px] text-slate-400 mt-0.5">Use ponto ou vírgula</p>
               <p className="text-[10px] text-slate-400 mt-1">
                 {inputs.service === 'reboco' ? 'Usual: 1.5 a 2.5 cm' : inputs.service === 'contrapiso' ? 'Usual: 3 a 7 cm' : 'Junta: 1 a 2 cm'}
               </p>
@@ -309,9 +355,15 @@ export const Calculator: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Desperdício (%)</label>
               <input 
-                type="number" 
-                value={inputs.waste}
-                onChange={(e) => setInputs({ ...inputs, waste: parseInt(e.target.value) || 0 })}
+                type="text" 
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={displayInputs.waste}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDisplayInputs(prev => ({ ...prev, waste: val }));
+                  setInputs(prev => ({ ...prev, waste: Math.round(parseInput(val)) }));
+                }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
@@ -328,9 +380,11 @@ export const Calculator: React.FC = () => {
                     <div>
                       <label className="block text-[10px] text-slate-500 mb-1">Cimento (Saco 50kg)</label>
                       <input 
-                        type="number" 
-                        value={inputs.cementPrice || ''}
-                        onChange={(e) => setInputs({ ...inputs, cementPrice: parseFloat(e.target.value) || 0 })}
+                        type="text" 
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        value={displayInputs.cementPrice}
+                        onChange={(e) => handleInputChange('cementPrice', e.target.value)}
                         className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
                         placeholder="R$ 0,00"
                       />
@@ -338,9 +392,11 @@ export const Calculator: React.FC = () => {
                     <div>
                       <label className="block text-[10px] text-slate-500 mb-1">Areia (m³)</label>
                       <input 
-                        type="number" 
-                        value={inputs.sandPrice || ''}
-                        onChange={(e) => setInputs({ ...inputs, sandPrice: parseFloat(e.target.value) || 0 })}
+                        type="text" 
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        value={displayInputs.sandPrice}
+                        onChange={(e) => handleInputChange('sandPrice', e.target.value)}
                         className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
                         placeholder="R$ 0,00"
                       />
@@ -420,6 +476,17 @@ export const Calculator: React.FC = () => {
                     <div className="relative z-10">
                       <div className="text-emerald-100 text-xs uppercase font-bold tracking-wider mb-2">Quantidade de Areia</div>
                       <div className="text-4xl font-black">{results.sandM3.toFixed(3)} <span className="text-xl font-normal opacity-70">m³</span></div>
+                      
+                      <div className="mt-4 pt-4 border-t border-emerald-500/30 flex gap-4">
+                        <div>
+                          <div className="text-[10px] text-emerald-200 uppercase font-bold">Em Litros</div>
+                          <div className="text-lg font-bold">{(results.sandM3 * 1000).toFixed(0)}L</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-emerald-200 uppercase font-bold">Em Latas (18L)</div>
+                          <div className="text-lg font-bold">{Math.ceil(results.sandM3 * 55.55)}</div>
+                        </div>
+                      </div>
                     </div>
                     <Layers className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 rotate-12" />
                   </div>

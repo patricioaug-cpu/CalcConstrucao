@@ -4,8 +4,6 @@ import {
   signOut, 
   onAuthStateChanged, 
   sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
   User
 } from 'firebase/auth';
 import { 
@@ -45,8 +43,7 @@ export async function registerUser(email: string, pass: string, displayName: str
         const path = `users/${user.uid}`;
         let profileDoc;
         try {
-          // Use getDocFromServer to bypass cache
-          profileDoc = await getDocFromServer(doc(db, 'users', user.uid));
+          profileDoc = await getDoc(doc(db, 'users', user.uid));
         } catch (e) {
           handleFirestoreError(e, OperationType.GET, path);
         }
@@ -117,14 +114,13 @@ export async function loginUser(email: string, pass: string) {
   
   // Fetch profile
   const profilePath = `users/${user.uid}`;
-  let profileDoc;
-  try {
-    console.log("Buscando perfil do usuário (do servidor)...");
-    // Use getDocFromServer to bypass cache
-    profileDoc = await getDocFromServer(doc(db, 'users', user.uid));
-  } catch (e) {
-    handleFirestoreError(e, OperationType.GET, profilePath);
-  }
+    let profileDoc;
+    try {
+      console.log("Buscando perfil do usuário...");
+      profileDoc = await getDoc(doc(db, 'users', user.uid));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, profilePath);
+    }
 
   if (!profileDoc || !profileDoc.exists()) {
     console.log("Perfil não encontrado, criando perfil padrão...");
@@ -142,19 +138,6 @@ export async function resetPassword(email: string) {
 
 export async function logout() {
   await signOut(auth);
-}
-
-export async function loginWithGoogle() {
-  const provider = new GoogleAuthProvider();
-  const userCredential = await signInWithPopup(auth, provider);
-  const user = userCredential.user;
-  
-  // Fetch or create profile
-  const profileDoc = await getDoc(doc(db, 'users', user.uid));
-  if (!profileDoc.exists()) {
-    return await createProfile(user, user.displayName || user.email?.split('@')[0] || 'Usuário');
-  }
-  return profileDoc.data() as UserProfile;
 }
 
 export function checkTrialStatus(profile: UserProfile): boolean {
