@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and subscription status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "status": { "type": "string", "enum": ["trial", "liberado", "bloqueado"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "trialEndsAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "status", "createdAt", "trialEndsAt"]
+    },
+    "LoginLog": {
+      "title": "Login Log",
+      "description": "History of user logins",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "timestamp"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Saved construction calculations",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "inputs": { "type": "object" },
+        "results": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "inputs", "results", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/logins/{loginId}": {
+      "schema": "LoginLog",
+      "description": "Login history logs"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Saved user projects"
+    }
+  }
+}
