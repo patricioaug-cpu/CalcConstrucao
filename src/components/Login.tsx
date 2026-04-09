@@ -19,47 +19,42 @@ export const Login: React.FC = () => {
     setError(null);
     try {
       console.log("Iniciando tentativa de login para:", email);
-      
-      // Check if we have a connection first
-      try {
-        const { getDoc, doc } = await import('firebase/firestore');
-        const { db } = await import('../firebase');
-        await getDoc(doc(db, 'test', 'connection'));
-        console.log("Conexão com Firestore verificada antes do login.");
-      } catch (connErr) {
-        console.warn("Aviso: Teste de conexão falhou, mas tentando login mesmo assim...", connErr);
-      }
-
       await loginUser(email, password);
       console.log("Login bem-sucedido, redirecionando...");
       navigate('/');
     } catch (err: any) {
-      console.error("Erro capturado no componente Login:", err);
-      
-      // Handle JSON error from handleFirestoreError
-      if (err.message?.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(err.message);
-          setError(`Erro de Perfil: Não conseguimos carregar seus dados após o login. Verifique as regras do banco de dados. Detalhe: ${parsed.error}`);
-          return;
-        } catch (e) {
-          // fallback
-        }
-      }
-
-      if (err.code === 'auth/network-request-failed') {
-        setError(`Erro de Rede: O aplicativo não conseguiu se comunicar com o Firebase. Isso acontece se:\n1. Você estiver sem internet.\n2. O domínio "${window.location.hostname}" não estiver na lista de "Domínios Autorizados" no Firebase Console.\n3. Um firewall ou proxy estiver bloqueando a conexão.`);
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-email') {
-        setError('Credenciais Inválidas: E-mail ou senha incorretos. Se você ainda não tem conta, clique em "Cadastre-se" abaixo.');
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError('Serviço Desativado: O login por e-mail e senha não está ativado no seu projeto Firebase. Ative-o em Authentication > Sign-in method.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Muitas tentativas: O acesso a esta conta foi temporariamente desativado devido a muitas tentativas de login malsucedidas. Tente novamente mais tarde ou mude sua senha.');
-      } else {
-        setError(`Falha no Login: ${err.message || 'Erro desconhecido'}. (Código: ${err.code || 'N/A'})`);
-      }
+      handleAuthError(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAuthError = (err: any) => {
+    console.error("Erro capturado no componente Login:", err);
+    
+    // Handle JSON error from handleFirestoreError
+    if (err.message?.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(err.message);
+        setError(`Erro de Perfil: Não conseguimos carregar seus dados após o login. Verifique as regras do banco de dados. Detalhe: ${parsed.error}`);
+        return;
+      } catch (e) {
+        // fallback
+      }
+    }
+
+    if (err.code === 'auth/network-request-failed') {
+      setError(`Erro de Rede: O aplicativo não conseguiu se comunicar com o Firebase. Verifique sua conexão.`);
+    } else if (err.code === 'auth/invalid-credential') {
+      setError('Credenciais Inválidas: O e-mail ou a senha estão incorretos. Se você esqueceu sua senha, use o link "Esqueceu a senha?". Se você ainda não tem conta, clique em "Cadastre-se".');
+    } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      setError('E-mail ou senha incorretos.');
+    } else if (err.code === 'auth/operation-not-allowed') {
+      setError('Serviço Desativado: Este método de login não está ativado no Firebase Console.');
+    } else if (err.code === 'auth/too-many-requests') {
+      setError('Muitas tentativas: Tente novamente mais tarde.');
+    } else {
+      setError(`Falha no Login: ${err.message || 'Erro desconhecido'}. (Código: ${err.code || 'N/A'})`);
     }
   };
 

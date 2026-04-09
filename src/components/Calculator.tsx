@@ -18,7 +18,6 @@ import {
   Clock,
   Share2,
   Save,
-  MapPin,
   Plus,
   X,
   DollarSign,
@@ -161,10 +160,6 @@ export const Calculator: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const findNearbyStores = () => {
-    window.open('https://www.google.com/maps/search/materiais+de+construção+perto+de+mim', '_blank');
   };
 
   if (!isTrialActive) {
@@ -415,16 +410,6 @@ export const Calculator: React.FC = () => {
             </button>
           </form>
         </motion.div>
-
-        <div className="space-y-3">
-          <button 
-            onClick={findNearbyStores}
-            className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-          >
-            <MapPin className="w-5 h-5 text-red-500" />
-            Lojas de Materiais Próximas
-          </button>
-        </div>
 
         <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex gap-3">
           <Info className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
