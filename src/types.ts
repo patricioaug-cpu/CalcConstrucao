@@ -42,8 +42,8 @@ export interface UserProfile {
   displayName: string;
   role: 'admin' | 'user';
   status: 'trial' | 'liberado' | 'bloqueado';
-  createdAt: string;
-  trialEndsAt: string;
+  createdAt: any;
+  trialEndsAt: any;
 }
 
 export interface LoginLog {

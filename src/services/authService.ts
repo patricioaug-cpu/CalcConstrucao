@@ -67,17 +67,20 @@ export async function registerUser(email: string, pass: string, displayName: str
 }
 
 export async function createProfile(user: User, displayName: string) {
-  const trialEndsAt = addDays(new Date(), TRIAL_DAYS).toISOString();
-  const isAdmin = user.email === ADMIN_EMAIL;
+  // Case-insensitive check for admin
+  const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   
-  const profile: UserProfile = {
+  // Calculate trial end (7 days from now)
+  const trialEndsAt = addDays(new Date(), TRIAL_DAYS).toISOString();
+  
+  const profile: any = {
     uid: user.uid,
     email: user.email!,
     displayName,
     role: isAdmin ? 'admin' : 'user',
     status: isAdmin ? 'liberado' : 'trial',
-    createdAt: new Date().toISOString(),
-    trialEndsAt
+    createdAt: serverTimestamp(), // Use server date
+    trialEndsAt: trialEndsAt
   };
   
   const path = `users/${user.uid}`;
@@ -109,27 +112,42 @@ export async function loginUser(email: string, pass: string) {
     await addDoc(collection(db, 'logins'), loginLog);
   } catch (e) {
     console.error("Erro ao registrar log de login:", e);
-    // Don't block login if logging fails, but log it
   }
   
   // Fetch profile
   const profilePath = `users/${user.uid}`;
-    let profileDoc;
-    try {
-      console.log("Buscando perfil do usuário...");
-      profileDoc = await getDoc(doc(db, 'users', user.uid));
-    } catch (e) {
-      handleFirestoreError(e, OperationType.GET, profilePath);
-    }
+  let profileDoc;
+  try {
+    console.log("Buscando perfil do usuário...");
+    profileDoc = await getDoc(doc(db, 'users', user.uid));
+  } catch (e) {
+    handleFirestoreError(e, OperationType.GET, profilePath);
+  }
 
   if (!profileDoc || !profileDoc.exists()) {
     console.log("Perfil não encontrado, criando perfil padrão...");
-    // If profile is missing, create a default one to avoid getting stuck
     return await createProfile(user, user.email?.split('@')[0] || 'Usuário');
   }
   
+  const profileData = profileDoc.data() as UserProfile;
+  
+  // Robust Admin Check: If email matches ADMIN_EMAIL but role is not admin, update it automatically
+  if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && profileData.role !== 'admin') {
+    console.log("Promovendo usuário para administrador...");
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { 
+        role: 'admin', 
+        status: 'liberado' 
+      });
+      profileData.role = 'admin';
+      profileData.status = 'liberado';
+    } catch (e) {
+      console.error("Erro ao promover administrador:", e);
+    }
+  }
+  
   console.log("Perfil carregado com sucesso");
-  return profileDoc.data() as UserProfile;
+  return profileData;
 }
 
 export async function resetPassword(email: string) {
@@ -145,7 +163,21 @@ export function checkTrialStatus(profile: UserProfile): boolean {
   if (profile.status === 'bloqueado') return false;
   
   const now = new Date();
-  const trialEnd = new Date(profile.trialEndsAt);
+  let trialEnd: Date;
+
+  if (profile.trialEndsAt && typeof profile.trialEndsAt === 'object' && 'toDate' in profile.trialEndsAt) {
+    trialEnd = profile.trialEndsAt.toDate();
+  } else if (typeof profile.trialEndsAt === 'string') {
+    trialEnd = new Date(profile.trialEndsAt);
+  } else if (profile.createdAt && typeof profile.createdAt === 'object' && 'toDate' in profile.createdAt) {
+    // Fallback: calculate from createdAt if trialEndsAt is missing or invalid
+    trialEnd = addDays(profile.createdAt.toDate(), TRIAL_DAYS);
+  } else if (typeof profile.createdAt === 'string') {
+    trialEnd = addDays(new Date(profile.createdAt), TRIAL_DAYS);
+  } else {
+    // Last resort fallback
+    return true; 
+  }
   
   return isAfter(trialEnd, now);
 }

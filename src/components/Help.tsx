@@ -53,11 +53,6 @@ export const Help: React.FC = () => {
       title: "Histórico de Projetos",
       desc: "Salve seus cálculos com nomes personalizados para consultar, editar ou excluir futuramente em seu perfil.",
       icon: <FolderOpen className="w-6 h-6 text-emerald-600" />
-    },
-    {
-      title: "Geolocalização",
-      desc: "Encontre lojas de materiais de construção próximas à sua obra com um clique usando a integração com o Google Maps.",
-      icon: <MapPin className="w-6 h-6 text-emerald-600" />
     }
   ];
 
@@ -113,8 +108,7 @@ export const Help: React.FC = () => {
               "Visualização 3D em tempo real para conferência de dimensões.",
               "Relatório detalhado pronto para compartilhar via WhatsApp.",
               "Histórico de Projetos: Salve e gerencie seus cálculos na nuvem.",
-              "Traço Personalizado: Flexibilidade total para suas misturas.",
-              "Localizador de Lojas: Encontre fornecedores próximos rapidamente."
+              "Traço Personalizado: Flexibilidade total para suas misturas."
             ].map((item, idx) => (
               <li key={idx} className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-300 mt-0.5 flex-shrink-0" />

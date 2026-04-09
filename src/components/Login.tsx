@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/authService';
 import { db } from '../firebase';
 import { Logo } from './Logo';
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,8 +19,9 @@ export const Login: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log("Iniciando tentativa de login para:", email);
-      await loginUser(email, password);
+      const trimmedEmail = email.trim();
+      console.log("Iniciando tentativa de login para:", trimmedEmail);
+      await loginUser(trimmedEmail, password);
       console.log("Login bem-sucedido, redirecionando...");
       navigate('/');
     } catch (err: any) {
@@ -46,9 +48,13 @@ export const Login: React.FC = () => {
     if (err.code === 'auth/network-request-failed') {
       setError(`Erro de Rede: O aplicativo não conseguiu se comunicar com o Firebase. Verifique sua conexão.`);
     } else if (err.code === 'auth/invalid-credential') {
-      setError('Credenciais Inválidas: O e-mail ou a senha estão incorretos. Se você esqueceu sua senha, use o link "Esqueceu a senha?". Se você ainda não tem conta, clique em "Cadastre-se".');
+      setError('Credenciais Inválidas: O e-mail ou a senha estão incorretos. Verifique se digitou corretamente, sem espaços extras e respeitando maiúsculas/minúsculas. Se você esqueceu sua senha, use o link "Esqueceu a senha?".');
     } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
       setError('E-mail ou senha incorretos.');
+    } else if (err.code === 'auth/invalid-email') {
+      setError('E-mail inválido: O formato do e-mail digitado não é válido.');
+    } else if (err.code === 'auth/user-disabled') {
+      setError('Conta Desativada: Esta conta foi desativada por um administrador.');
     } else if (err.code === 'auth/operation-not-allowed') {
       setError('Serviço Desativado: Este método de login não está ativado no Firebase Console.');
     } else if (err.code === 'auth/too-many-requests') {
@@ -136,13 +142,21 @@ export const Login: React.FC = () => {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                className="w-full pl-10 pr-12 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 

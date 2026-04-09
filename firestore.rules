@@ -15,7 +15,7 @@ service cloud.firestore {
       let userDoc = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && 
         ((exists(userDoc) && get(userDoc).data.role == 'admin') ||
-         (request.auth.token.email == "patricioaug@gmail.com" && request.auth.token.email_verified == true));
+         (request.auth.token.email.lower() == "patricioaug@gmail.com" && request.auth.token.email_verified == true));
     }
 
     function isValidUser(data) {

@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { UserProfile } from './types';
 import { logout, createProfile } from './services/authService';
+import { ADMIN_EMAIL } from './constants';
 import { Calculator } from './components/Calculator';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
@@ -192,7 +193,25 @@ export default function App() {
             const docSnap = await getDoc(docRef);
             
             if (docSnap.exists()) {
-              setUser(docSnap.data() as UserProfile);
+              const profileData = docSnap.data() as UserProfile;
+              
+              // Robust Admin Check: If email matches ADMIN_EMAIL but role is not admin, update it automatically
+              if (firebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && profileData.role !== 'admin') {
+                console.log("Promovendo usuário para administrador (onAuthStateChanged)...");
+                try {
+                  const { updateDoc } = await import('firebase/firestore');
+                  await updateDoc(doc(db, 'users', firebaseUser.uid), { 
+                    role: 'admin', 
+                    status: 'liberado' 
+                  });
+                  profileData.role = 'admin';
+                  profileData.status = 'liberado';
+                } catch (e) {
+                  console.error("Erro ao promover administrador:", e);
+                }
+              }
+              
+              setUser(profileData);
             } else {
               console.log("Perfil não encontrado, criando novo...");
               const newProfile = await createProfile(firebaseUser, firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário');
