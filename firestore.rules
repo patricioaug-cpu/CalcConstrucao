@@ -15,7 +15,7 @@ service cloud.firestore {
       let userDoc = /databases/$(database)/documents/users/$(request.auth.uid);
       return isAuthenticated() && 
         ((exists(userDoc) && get(userDoc).data.role == 'admin') ||
-         (request.auth.token.email.lower() == "patricioaug@gmail.com" && request.auth.token.email_verified == true));
+         (request.auth.token.email.lower() == "patricioaug@gmail.com"));
     }
 
     function isValidUser(data) {
@@ -25,8 +25,8 @@ service cloud.firestore {
              data.displayName is string && data.displayName.size() < 128 &&
              data.role in ['admin', 'user'] &&
              data.status in ['trial', 'liberado', 'bloqueado'] &&
-             data.createdAt is string &&
-             data.trialEndsAt is string;
+             (data.createdAt is string || data.createdAt is timestamp) &&
+             (data.trialEndsAt is string || data.trialEndsAt is timestamp);
     }
 
     // Diagnostic path for connection testing

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { UserProfile } from './types';
 import { logout, createProfile } from './services/authService';
@@ -82,7 +82,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Link to="/help" className="text-slate-600 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
                   <HelpCircle className="w-4 h-4" /> Ajuda
                 </Link>
-                {user.role === 'admin' && (
+                {(user.role === 'admin' || user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) && (
                   <Link to="/admin" className="text-slate-600 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
                     <Shield className="w-4 h-4" /> Admin
                   </Link>
@@ -123,7 +123,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <Link to="/" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-emerald-600 hover:bg-slate-50">Calculadora</Link>
                   <Link to="/projects" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-emerald-600 hover:bg-slate-50">Meus Projetos</Link>
                   <Link to="/help" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-emerald-600 hover:bg-slate-50">Ajuda</Link>
-                  {user.role === 'admin' && (
+                  {(user.role === 'admin' || user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) && (
                     <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-emerald-600 hover:bg-slate-50">Admin</Link>
                   )}
                   <button 
@@ -166,7 +166,24 @@ export default function App() {
         const docRef = doc(db, 'users', auth.currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setUser(docSnap.data() as UserProfile);
+          const profileData = docSnap.data() as UserProfile;
+          
+          // Robust Admin Check: If email matches ADMIN_EMAIL but role is not admin, update it automatically
+          if (auth.currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && profileData.role !== 'admin') {
+            console.log("Promovendo usuário para administrador (refreshUser)...");
+            try {
+              await updateDoc(doc(db, 'users', auth.currentUser.uid), { 
+                role: 'admin', 
+                status: 'liberado' 
+              });
+              profileData.role = 'admin';
+              profileData.status = 'liberado';
+            } catch (e) {
+              console.error("Erro ao promover administrador:", e);
+            }
+          }
+          
+          setUser(profileData);
         }
       } catch (e) {
         handleFirestoreError(e, OperationType.GET, path);
@@ -199,7 +216,6 @@ export default function App() {
               if (firebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && profileData.role !== 'admin') {
                 console.log("Promovendo usuário para administrador (onAuthStateChanged)...");
                 try {
-                  const { updateDoc } = await import('firebase/firestore');
                   await updateDoc(doc(db, 'users', firebaseUser.uid), { 
                     role: 'admin', 
                     status: 'liberado' 
@@ -247,7 +263,7 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/" element={user ? <Calculator /> : <Navigate to="/login" />} />
               <Route path="/projects" element={user ? <Projects /> : <Navigate to="/login" />} />
-              <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} />
+              <Route path="/admin" element={(user?.role === 'admin' || user?.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) ? <Admin /> : <Navigate to="/" />} />
               <Route path="/help" element={user ? <Help /> : <Navigate to="/login" />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
